@@ -1,0 +1,39 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:MCSkinDownloader.ViewModels;assembly=MCSkinDownloader"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+		MinWidth="800" MinHeight="450"
+		Width="800" Height="450"
+        x:Class="MCSkinDownloader.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="MCSkinDownloader">
+
+	<Design.DataContext>
+		<vm:MainWindowViewModel/>
+	</Design.DataContext>
+	<Window.Styles>
+		<Style Selector="ListBoxItem">
+			<Setter Property="Foreground" Value="Black"/>
+		</Style>
+	</Window.Styles>
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="50*"/>
+			<ColumnDefinition Width="50*"/>
+		</Grid.ColumnDefinitions>
+		<Grid x:Name="SearchContainer" Margin="5" Grid.Column="0">
+			<Grid RowDefinitions="5*, 85*">
+				<Grid ColumnDefinitions="55*, 75" RowDefinitions="25" Grid.Row="0">
+					<TextBox Text="{Binding SearchText}"/>
+					<Button Grid.Column="1" Margin="5 0 0 0" Content="Search" Command="{Binding SearchCmd}"/>
+				</Grid>
+				<ListBox Margin="0 5 0 0" Items="{Binding Items}" Grid.Row="1" SelectedItem="{Binding CurrentItem}"/>
+			</Grid>
+		</Grid>
+		<Grid x:Name="DisplayContainer" Margin="5" Grid.Column="1">
+			<Image Source="{Binding CurrentImage}"/>
+		</Grid>
+	</Grid>
+</Window>
