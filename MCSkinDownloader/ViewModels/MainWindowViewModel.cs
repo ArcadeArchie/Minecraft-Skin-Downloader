@@ -41,6 +41,7 @@ namespace MCSkinDownloader.ViewModels
             }
         }
         public ObservableCollection<ListBoxItem> Items { get; set; } = new ObservableCollection<ListBoxItem>() { new ListBoxItem { Content = "No Results" } };
+        
         #region Commands
         public ReactiveCommand<string, bool> SearchCmd { get; }
         private ReactiveCommand<ListBoxItem, Unit> UpdateImageCmd { get; }
@@ -91,13 +92,16 @@ namespace MCSkinDownloader.ViewModels
             return false;
         }
     
-    
         private async Task<Unit> UpdateImage(ListBoxItem item)
         {
             if (item != null && item.Content != null)
             {
                 string url = await _imageDownloaderService.GetImageURL(item.Content as SearchResult);
-                CurrentImage = await _imageDownloaderService.GetImage(url, AutoDownload, DownloadFolder, (item.Content as SearchResult).DisplayText);
+                CurrentImage = await _imageDownloaderService.GetImage(url);
+                if (AutoDownload)
+                {
+                    DownloadImageCmd.Execute(item);
+                }
             }
             return Unit.Default;
         }

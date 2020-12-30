@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls.Shapes;
 using Avalonia.Media.Imaging;
 using MCSkinDownloader.Models;
+using MCSkinDownloader.Views;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -13,7 +14,7 @@ namespace MCSkinDownloader.Services
     public interface IImageDownloaderService
     {
         Task<string> GetImageURL(SearchResult res);
-        Task<IBitmap> GetImage(string url, bool saveToFile, string folderPath = "", string fileName = "");
+        Task<IBitmap> GetImage(string url);
         Task DownloadImage(string url, string folderPath = "", string fileName = "");
     }
 
@@ -39,52 +40,81 @@ namespace MCSkinDownloader.Services
 
             return string.Format(Const.IMAGE_URL ,GetHash(await result.Content.ReadAsStringAsync()));
         }
-        public async Task<IBitmap> GetImage(string url, bool saveToFile, string folderPath = "", string fileName = "")
+        
+        /// <summary>
+        /// Downloads an image from the given URL and returns it as an Bitmap
+        /// </summary>
+        /// <param name="url">The image URL</param>
+        /// <returns>The image Bitmap</returns>
+        public async Task<IBitmap> GetImage(string url)
         {
             using (var result = await _client.GetAsync(url))
             {
                 if (result.IsSuccessStatusCode)
                 {
                     var pic = new Bitmap(await result.Content.ReadAsStreamAsync());
-                    if (saveToFile)
-                    {
-                        SavePicture(pic, folderPath, fileName);
-                    }
                     return pic;
                 }
             }
             return null;
         }
+
+        /// <summary>
+        /// Downloads an image from the given URL and saves it the specified location
+        /// </summary>
+        /// <param name="url">The image URL</param>
+        /// <param name="folderPath">Save Folder</param>
+        /// <param name="fileName">Save Filename</param>
         public async Task DownloadImage(string url, string folderPath = "", string fileName = "")
         {
-            using (var result = await _client.GetAsync(url))
+            var pic = await GetImage(url);
+            if (pic != null)
             {
-                if (result.IsSuccessStatusCode)
-                {
-                    var pic = new Bitmap(await result.Content.ReadAsStreamAsync());
-                    SavePicture(pic, folderPath, fileName);
-                }
+                SavePicture(pic, folderPath, fileName);
             }
         }
 
-        private void SavePicture(Bitmap pic, string folderPath, string fileName)
+        /// <summary>
+        /// Saves an Bitmap image to disk
+        /// </summary>
+        /// <param name="pic">The Image</param>
+        /// <param name="folderPath">Save Location</param>
+        /// <param name="fileName">Save Filename</param>
+        private async void SavePicture(IBitmap pic, string folderPath, string fileName)
         {
+            //if null default the users Download folder
             string basePath = string.IsNullOrEmpty(folderPath) ? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads") : folderPath;
             string filePath = System.IO.Path.Combine(basePath, $"{fileName}.png");
-            using (var file = System.IO.File.Create(filePath))
+            //save the image
+            try
             {
-                pic.Save(file);
+                using (var file = System.IO.File.Create(filePath))
+                {
+                    pic.Save(file);
+                }
+            }
+            catch (Exception e)
+            {
+                //TODO: Log error
+                await MessageBox.Show(MainWindow.Instance,e.Message, "ERROR", MessageBox.MessageBoxButtons.Ok);
             }
         }
 
+        /// <summary>
+        /// Searches for the NameMC Skinhash and returns it
+        /// </summary>
+        /// <param name="html">The HTML text from NameMC</param>
+        /// <returns>the NameMC Skinhash</returns>
         private string GetHash(string html)
         {
             string hash = "";
+            //set the regex options and loop through the matches
             RegexOptions options = RegexOptions.Multiline;
             foreach (Match m in Regex.Matches(html, Const.Regex.ATTR_VALUE, options))
             {
-                if (m.Groups[1].Value.ToLowerInvariant() == "data-skin-hash")
+                if (m.Groups[1].Value.ToLowerInvariant() == "data-skin-hash")// if the 1st group is the right attribute discriptor
                 {
+                    //take the value of the 2nd group and break the loop
                     hash = m.Groups[2].Value;
                     break;
                 }
