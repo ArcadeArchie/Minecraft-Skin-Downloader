@@ -13,7 +13,8 @@ namespace MCSkinDownloader.Services
     public interface IImageDownloaderService
     {
         Task<string> GetImageURL(SearchResult res);
-        Task<IBitmap> DownloadImage(string url, bool saveToFile, string fileName = "");
+        Task<IBitmap> GetImage(string url, bool saveToFile, string folderPath = "", string fileName = "");
+        Task DownloadImage(string url, string folderPath = "", string fileName = "");
     }
 
     public class ImageDownloaderService : IImageDownloaderService
@@ -38,7 +39,7 @@ namespace MCSkinDownloader.Services
 
             return string.Format(Const.IMAGE_URL ,GetHash(await result.Content.ReadAsStringAsync()));
         }
-        public async Task<IBitmap> DownloadImage(string url, bool saveToFile, string fileName = "")
+        public async Task<IBitmap> GetImage(string url, bool saveToFile, string folderPath = "", string fileName = "")
         {
             using (var result = await _client.GetAsync(url))
             {
@@ -47,18 +48,29 @@ namespace MCSkinDownloader.Services
                     var pic = new Bitmap(await result.Content.ReadAsStreamAsync());
                     if (saveToFile)
                     {
-                        SavePicture(pic, fileName);
+                        SavePicture(pic, folderPath, fileName);
                     }
                     return pic;
                 }
             }
             return null;
         }
-
-        private void SavePicture(Bitmap pic, string fileName)
+        public async Task DownloadImage(string url, string folderPath = "", string fileName = "")
         {
-            string basePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            string filePath = System.IO.Path.Combine(basePath, "Downloads", $"{fileName}.png");
+            using (var result = await _client.GetAsync(url))
+            {
+                if (result.IsSuccessStatusCode)
+                {
+                    var pic = new Bitmap(await result.Content.ReadAsStreamAsync());
+                    SavePicture(pic, folderPath, fileName);
+                }
+            }
+        }
+
+        private void SavePicture(Bitmap pic, string folderPath, string fileName)
+        {
+            string basePath = string.IsNullOrEmpty(folderPath) ? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads") : folderPath;
+            string filePath = System.IO.Path.Combine(basePath, $"{fileName}.png");
             using (var file = System.IO.File.Create(filePath))
             {
                 pic.Save(file);

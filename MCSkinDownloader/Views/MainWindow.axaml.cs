@@ -6,12 +6,14 @@ namespace MCSkinDownloader.Views
 {
     public class MainWindow : Window
     {
+        public static MainWindow Instance { get; private set; }
         public MainWindow()
         {
             InitializeComponent();
 #if DEBUG
             this.AttachDevTools();
 #endif
+            Instance = this;
         }
 
         private void InitializeComponent()

@@ -3,6 +3,7 @@ using Avalonia.Media.Imaging;
 using DynamicData;
 using MCSkinDownloader.Models;
 using MCSkinDownloader.Services;
+using MCSkinDownloader.Views;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using System;
@@ -19,26 +20,36 @@ namespace MCSkinDownloader.ViewModels
     {
         private readonly ISearchService _searchService;
         private readonly IImageDownloaderService _imageDownloaderService;
-
+        #region Properties
+        [Reactive]
+        public bool AutoDownload { get; set; }
         [Reactive]
         public string SearchText { get; set; }
         [Reactive]
+        public string DownloadFolder { get; set; }
+        [Reactive]
         public IBitmap CurrentImage { get; set; }
-        
+
         private ListBoxItem _currentItem;
-        public ListBoxItem CurrentItem 
+        public ListBoxItem CurrentItem
         {
             get => _currentItem;
             set
             {
                 this.RaiseAndSetIfChanged(ref _currentItem, value);
                 UpdateImageCmd.Execute(_currentItem);
-            } 
+            }
         }
         public ObservableCollection<ListBoxItem> Items { get; set; } = new ObservableCollection<ListBoxItem>() { new ListBoxItem { Content = "No Results" } };
-
+        #region Commands
         public ReactiveCommand<string, bool> SearchCmd { get; }
         private ReactiveCommand<ListBoxItem, Unit> UpdateImageCmd { get; }
+        private ReactiveCommand<ListBoxItem, Unit> DownloadImageCmd { get; }
+        private ReactiveCommand<Unit, Unit> SetDownloadPathCmd { get; }
+
+        #endregion
+        #endregion
+
 
 
         public MainWindowViewModel()
@@ -51,9 +62,14 @@ namespace MCSkinDownloader.ViewModels
 
             var canUpdate = this.WhenAnyValue(vm => vm.CurrentItem,
                 (currentItem) =>
-                    currentItem!=null && currentItem.Content != null);
+                    currentItem != null && currentItem.Content != null);
             UpdateImageCmd = ReactiveCommand.CreateFromTask<ListBoxItem, Unit>(UpdateImage, canUpdate);
             UpdateImageCmd.IsExecuting.ToProperty(this, x => x.IsBusy, out isBusy);
+
+            DownloadImageCmd = ReactiveCommand.CreateFromTask<ListBoxItem, Unit>(DownloadImage, canUpdate);
+            DownloadImageCmd.IsExecuting.ToProperty(this, x => x.IsBusy, out isBusy);
+
+            SetDownloadPathCmd = ReactiveCommand.CreateFromTask<Unit>(ChooseDownloadFolder);
         }
 
         public MainWindowViewModel(ISearchService searchService, IImageDownloaderService imageDownloaderService) : this()
@@ -81,7 +97,28 @@ namespace MCSkinDownloader.ViewModels
             if (item != null && item.Content != null)
             {
                 string url = await _imageDownloaderService.GetImageURL(item.Content as SearchResult);
-                CurrentImage = await _imageDownloaderService.DownloadImage(url, true, (item.Content as SearchResult).DisplayText);
+                CurrentImage = await _imageDownloaderService.GetImage(url, AutoDownload, DownloadFolder, (item.Content as SearchResult).DisplayText);
+            }
+            return Unit.Default;
+        }
+
+        private async Task<Unit> DownloadImage(ListBoxItem item)
+        {
+            if (item != null && item.Content != null)
+            {
+                string url = await _imageDownloaderService.GetImageURL(item.Content as SearchResult);
+                await _imageDownloaderService.DownloadImage(url, DownloadFolder, (item.Content as SearchResult).DisplayText);
+            }
+            return Unit.Default;
+        }
+
+        private async Task<Unit> ChooseDownloadFolder()
+        {
+            var diag = new OpenFolderDialog();
+            var res = await diag.ShowAsync(MainWindow.Instance);
+            if (res != null)
+            {
+                DownloadFolder = res;
             }
             return Unit.Default;
         }
