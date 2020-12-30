@@ -1,4 +1,4 @@
-name: .NET
+name: Publish Linux
 
 on:
   push:
@@ -23,3 +23,5 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+    - name: Publish
+      run: dotnet publish --self-contained --no-restore -c Release -v n -r linux-x64
