@@ -24,4 +24,4 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish
-      run: dotnet publish --self-contained --no-restore -c Release -v n -r linux-x64
+      run: dotnet publish --self-contained -c Release -v n -r linux-x64
